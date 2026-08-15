@@ -1,0 +1,82 @@
+{
+  "name": "Invoice Reconciliation Agent Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "folder",
+        "folderId": "YOUR_GOOGLE_DRIVE_INVOICES_FOLDER_ID"
+      },
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://your-cloud-run-pdf-parser.run.app/parse",
+        "method": "POST"
+      },
+      "name": "Parse PDF (Cloud Run)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST"
+      },
+      "name": "Extract Invoice Fields (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "documentId": "YOUR_GOOGLE_SHEET_PO_DATABASE_ID",
+        "sheetName": "PurchaseOrders"
+      },
+      "name": "Lookup PO (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://your-cloud-run-reconciler.run.app/reconcile",
+        "method": "POST"
+      },
+      "name": "Compare Totals (Pure Python)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST"
+      },
+      "name": "Classify Discrepancy (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "channel": "finance-discrepancies"
+      },
+      "name": "Alert Bookkeeper (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {}
+}
