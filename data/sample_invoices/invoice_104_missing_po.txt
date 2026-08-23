@@ -1,0 +1,17 @@
+INVOICE
+Mystery Marketing Consultants
+77 Media Plaza
+New York, NY 10001
+
+Bill To: Marketing Department
+Invoice Number: MMC-9002
+Invoice Date: 2026-08-20
+Purchase Order #: PO-9999-NOTFOUND
+
+Line Items:
+- Ad Campaign Strategy Consultation | Qty: 1 | Unit Price: $3500.00 | Total: $3500.00
+
+Subtotal: $3500.00
+Tax: $0.00
+Shipping: $0.00
+Total Amount Due: $3500.00

@@ -21,7 +21,10 @@
     {
       "parameters": {
         "url": "https://your-cloud-run-pdf-parser.run.app/parse",
-        "method": "POST"
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"file_url\": \"{{ $json.webContentLink }}\",\n  \"filename\": \"{{ $json.name }}\"\n}"
       },
       "name": "Parse PDF (Cloud Run)",
       "type": "n8n-nodes-base.httpRequest",
@@ -31,7 +34,27 @@
     {
       "parameters": {
         "url": "https://api.anthropic.com/v1/messages",
-        "method": "POST"
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-3-7-sonnet-20250219\",\n  \"max_tokens\": 2048,\n  \"temperature\": 0.0,\n  \"system\": \"You are an invoice parsing assistant. Extract structured JSON from raw invoice text without hallucinating.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Extract structured JSON from the invoice text below.\\nSchema:\\n{\\\"vendor_name\\\": \\\"string\\\", \\\"invoice_number\\\": \\\"string\\\", \\\"po_number\\\": \\\"string\\\", \\\"invoice_date\\\": \\\"YYYY-MM-DD\\\", \\\"line_items\\\": [{\\\"description\\\": \\\"string\\\", \\\"quantity\\\": number, \\\"unit_price\\\": number, \\\"total_price\\\": number}], \\\"subtotal\\\": number, \\\"tax\\\": number, \\\"total_amount\\\": number}\\n\\nInvoice Text:\\n{{ $json.text }}\"\n    }\n  ]\n}"
       },
       "name": "Extract Invoice Fields (Claude)",
       "type": "n8n-nodes-base.httpRequest",
@@ -40,8 +63,11 @@
     },
     {
       "parameters": {
+        "operation": "lookup",
         "documentId": "YOUR_GOOGLE_SHEET_PO_DATABASE_ID",
-        "sheetName": "PurchaseOrders"
+        "sheetName": "PurchaseOrders",
+        "lookupColumn": "po_number",
+        "lookupValue": "={{ $json.content[0].text ? JSON.parse($json.content[0].text).po_number : '' }}"
       },
       "name": "Lookup PO (Google Sheets)",
       "type": "n8n-nodes-base.googleSheets",
@@ -51,7 +77,10 @@
     {
       "parameters": {
         "url": "https://your-cloud-run-reconciler.run.app/reconcile",
-        "method": "POST"
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"invoice\": {{ JSON.stringify($node[\"Extract Invoice Fields (Claude)\"].json) }},\n  \"purchase_order\": {{ JSON.stringify($json) }},\n  \"dollar_tolerance\": 0.50,\n  \"percent_tolerance\": 0.01\n}"
       },
       "name": "Compare Totals (Pure Python)",
       "type": "n8n-nodes-base.httpRequest",
@@ -61,7 +90,27 @@
     {
       "parameters": {
         "url": "https://api.anthropic.com/v1/messages",
-        "method": "POST"
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-3-7-sonnet-20250219\",\n  \"max_tokens\": 1024,\n  \"temperature\": 0.1,\n  \"system\": \"You are a financial discrepancy analyst. Classify reconciliation mismatches into clear root causes.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze the mathematical reconciliation result below and categorize the root discrepancy.\\nReconciliation Result:\\n{{ JSON.stringify($json) }}\"\n    }\n  ]\n}"
       },
       "name": "Classify Discrepancy (Claude)",
       "type": "n8n-nodes-base.httpRequest",
@@ -70,7 +119,8 @@
     },
     {
       "parameters": {
-        "channel": "finance-discrepancies"
+        "channel": "finance-discrepancies",
+        "text": "=:warning: *Invoice Reconciliation Alert*\n*Vendor:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.vendor_name }}\n*Invoice #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.invoice_number }}\n*PO #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.po_number }}\n*Status:* {{ $node[\"Compare Totals (Pure Python)\"].json.status }}\n*Summary:* {{ $json.content[0].text }}"
       },
       "name": "Alert Bookkeeper (Slack)",
       "type": "n8n-nodes-base.slack",
@@ -78,5 +128,72 @@
       "position": [1450, 300]
     }
   ],
-  "connections": {}
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse PDF (Cloud Run)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse PDF (Cloud Run)": {
+      "main": [
+        [
+          {
+            "node": "Extract Invoice Fields (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Invoice Fields (Claude)": {
+      "main": [
+        [
+          {
+            "node": "Lookup PO (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup PO (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Compare Totals (Pure Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Totals (Pure Python)": {
+      "main": [
+        [
+          {
+            "node": "Classify Discrepancy (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Discrepancy (Claude)": {
+      "main": [
+        [
+          {
+            "node": "Alert Bookkeeper (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
 }

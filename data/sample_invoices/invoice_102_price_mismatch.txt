@@ -1,0 +1,19 @@
+INVOICE
+Acme Office Supplies Inc.
+123 Business Parkway, Suite 400
+Chicago, IL 60601
+
+Bill To: Finance Department
+Invoice Number: INV-10092
+Invoice Date: 2026-08-18
+Purchase Order #: PO-8821
+
+Line Items:
+- Ergonomic Mesh Chairs | Qty: 10 | Unit Price: $175.00 | Total: $1750.00
+- Standing Desk Converters | Qty: 5 | Unit Price: $200.00 | Total: $1000.00
+
+Subtotal: $2750.00
+Tax: $0.00
+Shipping: $0.00
+Total Amount Due: $2750.00
+Note: Unit price for Mesh Chairs adjusted due to material surcharge.
