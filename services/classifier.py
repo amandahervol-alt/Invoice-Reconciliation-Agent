@@ -64,7 +64,6 @@ def classify_discrepancy(result: ReconciliationResult) -> DiscrepancyClassificat
         response = client.messages.create(
             model=model_name,
             max_tokens=1024,
-            temperature=0.0,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}]
         )
