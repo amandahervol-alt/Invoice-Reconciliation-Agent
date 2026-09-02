@@ -53,7 +53,6 @@ def extract_invoice_fields(raw_text: str) -> InvoiceData:
         response = client.messages.create(
             model=model_name,
             max_tokens=2048,
-            temperature=0.0,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}]
         )
