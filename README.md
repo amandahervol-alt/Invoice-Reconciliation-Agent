@@ -96,6 +96,8 @@ py test_agent.py
 3. Add your credentials for Google Drive, Google Sheets, Anthropic, and Slack in the node settings.
 4. Test with your watched invoices folder.
 
+
+
 ---
 
 ## 📄 License
