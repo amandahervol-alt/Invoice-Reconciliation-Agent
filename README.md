@@ -27,6 +27,7 @@ flowchart TD
 
 ---
 
+
 ## 💡 The Core Design Principle
 
 > **"The LLM does the language work; code does the math."**
@@ -101,5 +102,7 @@ py test_agent.py
 ---
 
 ## 📄 License
+
+
 
 This project is licensed under the [MIT License](LICENSE).
