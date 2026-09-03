@@ -27,7 +27,7 @@ class InvoiceData(BaseModel):
     raw_notes: Optional[str] = None
 
 def extract_invoice_fields(raw_text: str) -> InvoiceData:
-   """
+    """
     Calls Anthropic Claude to parse raw invoice text into structured InvoiceData.
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
