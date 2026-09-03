@@ -27,14 +27,14 @@ class InvoiceData(BaseModel):
     raw_notes: Optional[str] = None
 
 def extract_invoice_fields(raw_text: str) -> InvoiceData:
-    """
+   """
     Calls Anthropic Claude to parse raw invoice text into structured InvoiceData.
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key or api_key.strip() == "your_anthropic_api_key_here":
         raise ValueError("ANTHROPIC_API_KEY is missing or invalid in your .env file.")
 
-    model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-7-sonnet-20250219")
+     model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
     client = Anthropic(api_key=api_key)
 
     system_prompt = (
