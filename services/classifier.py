@@ -41,7 +41,7 @@ def classify_discrepancy(result: ReconciliationResult) -> DiscrepancyClassificat
             slack_summary=f"⚠️ Exception: Invoice #{result.invoice_number} vs PO #{result.po_number} (Variance: ${result.total_variance:+.2f})"
         )
 
-    model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-7-sonnet-20250219")
+    model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest")
     client = Anthropic(api_key=api_key)
 
     system_prompt = (
