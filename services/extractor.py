@@ -34,7 +34,7 @@ def extract_invoice_fields(raw_text: str) -> InvoiceData:
     if not api_key or api_key.strip() == "your_anthropic_api_key_here":
         raise ValueError("ANTHROPIC_API_KEY is missing or invalid in your .env file.")
 
-    model_name = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20240620")
+    model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
     client = Anthropic(api_key=api_key)
 
     system_prompt = (
