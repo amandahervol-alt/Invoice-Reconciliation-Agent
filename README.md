@@ -76,7 +76,7 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and set your Anthropic API key:
 ```env
 ANTHROPIC_API_KEY=sk-ant-your-key-here
-ANTHROPIC_MODEL=claude-3-7-sonnet-20250219
+ANTHROPIC_MODEL=claude-sonnet-5-5
 ```
 
 ### 3. Run a reconciliation

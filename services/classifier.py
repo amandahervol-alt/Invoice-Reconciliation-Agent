@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel
 from anthropic import Anthropic, APIError, AuthenticationError
 from dotenv import load_dotenv
+from services.claude_response import REQUEST_EXTRA_BODY, first_text, model_name
 from services.reconciler import ReconciliationResult
 
 load_dotenv()
@@ -41,7 +42,6 @@ def classify_discrepancy(result: ReconciliationResult) -> DiscrepancyClassificat
             slack_summary=f"⚠️ Exception: Invoice #{result.invoice_number} vs PO #{result.po_number} (Variance: ${result.total_variance:+.2f})"
         )
 
-    model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
     client = Anthropic(api_key=api_key)
 
     system_prompt = (
@@ -62,12 +62,13 @@ def classify_discrepancy(result: ReconciliationResult) -> DiscrepancyClassificat
 
     try:
         response = client.messages.create(
-            model=model_name,
-            max_tokens=1024,
+            model=model_name(),
+            max_tokens=4096,
             system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}]
+            messages=[{"role": "user", "content": user_prompt}],
+            extra_body=REQUEST_EXTRA_BODY,
         )
-        raw_output = response.content[0].text.strip()
+        raw_output = first_text(response)
         match = re.search(r'(\{[\s\S]*\})', raw_output)
         json_str = match.group(1) if match else raw_output
         data = json.loads(json_str)

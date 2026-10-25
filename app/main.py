@@ -5,7 +5,7 @@ import os
 import tempfile
 from services.parser import extract_invoice_text
 from services.extractor import extract_invoice_fields
-from services.reconciler import load_purchase_orders_from_csv, reconcile_invoice
+from services.reconciler import find_purchase_order, load_purchase_orders_from_csv, reconcile_invoice
 from services.classifier import classify_discrepancy
 
 app = FastAPI(title="Invoice Reconciliation Agent")
@@ -36,7 +36,7 @@ async def reconcile_document(file: UploadFile = File(...)):
         invoice_data = extract_invoice_fields(invoice_text)
         
         po_db = load_purchase_orders_from_csv("data/purchase_orders.csv")
-        po_record = po_db.get(invoice_data.po_number)
+        po_record = find_purchase_order(po_db, invoice_data.po_number)
         reconciliation_result = reconcile_invoice(invoice_data, po_record)
         
         classification = None

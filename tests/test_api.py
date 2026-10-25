@@ -48,3 +48,16 @@ def test_reconcile_endpoint_end_to_end(client, monkeypatch, name, status, classi
     assert body["invoice_data"]["invoice_number"] == SAMPLE_INVOICES[name].invoice_number
     assert body["reconciliation_result"]["status"] == status
     assert (body["classification"] is not None) is classified
+
+
+@pytest.mark.parametrize("po_number", ["po-8821", " PO-8821 "])
+def test_endpoint_matches_po_regardless_of_case_or_spacing(client, monkeypatch, po_number):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "your_anthropic_api_key_here")
+    name = "invoice_101_perfect_match.txt"
+    invoice = SAMPLE_INVOICES[name].model_copy(update={"po_number": po_number})
+    monkeypatch.setattr(app_main, "extract_invoice_fields", lambda text: invoice)
+
+    resp = client.post("/api/reconcile", files={"file": (name, (SAMPLES / name).read_bytes(), "text/plain")})
+
+    assert resp.status_code == 200
+    assert resp.json()["reconciliation_result"]["status"] == "MATCHED"

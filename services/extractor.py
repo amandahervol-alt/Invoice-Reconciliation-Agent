@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from anthropic import Anthropic, APIError, AuthenticationError
 from dotenv import load_dotenv
+from services.claude_response import REQUEST_EXTRA_BODY, first_text, model_name
 
 load_dotenv()
 
@@ -34,7 +35,6 @@ def extract_invoice_fields(raw_text: str) -> InvoiceData:
     if not api_key or api_key.strip() == "your_anthropic_api_key_here":
         raise ValueError("ANTHROPIC_API_KEY is missing or invalid in your .env file.")
 
-    model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
     client = Anthropic(api_key=api_key)
 
     system_prompt = (
@@ -51,12 +51,13 @@ def extract_invoice_fields(raw_text: str) -> InvoiceData:
 
     try:
         response = client.messages.create(
-            model=model_name,
-            max_tokens=2048,
+            model=model_name(),
+            max_tokens=4096,
             system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}]
+            messages=[{"role": "user", "content": user_prompt}],
+            extra_body=REQUEST_EXTRA_BODY,
         )
-        raw_output = response.content[0].text.strip()
+        raw_output = first_text(response)
         
         # Regex extraction for JSON object
         match = re.search(r'(\{[\s\S]*\})', raw_output)

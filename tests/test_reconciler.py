@@ -117,3 +117,34 @@ def test_dollar_tolerance_floor_applies_to_small_pos(pos):
     po.line_items = []
     inv = make_invoice("Apex Logistics & Freight", "INV-6", "PO-7712", [], total=20.40)
     assert reconcile_invoice(inv, po).within_tolerance
+
+
+# ---------- PO lookup normalization ----------
+
+@pytest.mark.parametrize("po_number", ["PO-8821", "po-8821", "  Po-8821 "])
+def test_find_purchase_order_is_case_and_whitespace_insensitive(pos, po_number):
+    from services.reconciler import find_purchase_order
+    assert find_purchase_order(pos, po_number).po_number == "PO-8821"
+
+
+@pytest.mark.parametrize("po_number", [None, "", "   ", "PO-0000"])
+def test_find_purchase_order_returns_none_when_absent(pos, po_number):
+    from services.reconciler import find_purchase_order
+    assert find_purchase_order(pos, po_number) is None
+
+
+# ---------- Line-level issue notes ----------
+
+def test_line_with_price_and_quantity_variance_keeps_both_issues(pos):
+    items = [("Ergonomic Mesh Chairs", 12, 175.00), ("Standing Desk Converters", 5, 200.00)]
+    res = reconcile_invoice(make_invoice(ACME, "INV-7", "PO-8821", items), pos["PO-8821"])
+    chairs = res.line_item_variances[0]
+    assert "Unit price variance" in chairs.issue
+    assert "Quantity variance" in chairs.issue
+    assert sum("Unit price variance" in f for f in res.flags) == 1
+    assert sum("Quantity variance" in f for f in res.flags) == 1
+
+
+def test_matching_line_has_no_issue(pos):
+    res = reconcile_invoice(make_invoice(ACME, "INV-8", "PO-8821", ACME_ITEMS), pos["PO-8821"])
+    assert all(v.issue is None for v in res.line_item_variances)

@@ -8,6 +8,7 @@ from services.parser import extract_invoice_text
 from services.extractor import extract_invoice_fields, InvoiceData
 from services.reconciler import (
     load_purchase_orders_from_csv,
+    find_purchase_order,
     reconcile_invoice,
     PurchaseOrder,
     ReconciliationResult
@@ -44,7 +45,7 @@ def run_reconciliation_pipeline(
 
     print(f"[3/5] Looking up PO from '{po_database_path}'...")
     po_database = load_purchase_orders_from_csv(po_database_path)
-    po_record = po_database.get(invoice_data.po_number.upper()) if invoice_data.po_number else None
+    po_record = find_purchase_order(po_database, invoice_data.po_number)
 
     if po_record:
         print(f"  -> Found PO #{po_record.po_number} (Authorized Total: ${po_record.expected_total:.2f})")

@@ -54,7 +54,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-3-7-sonnet-20250219\",\n  \"max_tokens\": 2048,\n  \"temperature\": 0.0,\n  \"system\": \"You are an invoice parsing assistant. Extract structured JSON from raw invoice text without hallucinating.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Extract structured JSON from the invoice text below.\\nSchema:\\n{\\\"vendor_name\\\": \\\"string\\\", \\\"invoice_number\\\": \\\"string\\\", \\\"po_number\\\": \\\"string\\\", \\\"invoice_date\\\": \\\"YYYY-MM-DD\\\", \\\"line_items\\\": [{\\\"description\\\": \\\"string\\\", \\\"quantity\\\": number, \\\"unit_price\\\": number, \\\"total_price\\\": number}], \\\"subtotal\\\": number, \\\"tax\\\": number, \\\"total_amount\\\": number}\\n\\nInvoice Text:\\n{{ $json.text }}\"\n    }\n  ]\n}"
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-5-5\",\n  \"max_tokens\": 4096,\n  \"output_config\": { \"effort\": \"low\" },\n  \"system\": \"You are an invoice parsing assistant. Extract structured JSON from raw invoice text without hallucinating.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Extract structured JSON from the invoice text below.\\nSchema:\\n{\\\"vendor_name\\\": \\\"string\\\", \\\"invoice_number\\\": \\\"string\\\", \\\"po_number\\\": \\\"string\\\", \\\"invoice_date\\\": \\\"YYYY-MM-DD\\\", \\\"line_items\\\": [{\\\"description\\\": \\\"string\\\", \\\"quantity\\\": number, \\\"unit_price\\\": number, \\\"total_price\\\": number}], \\\"subtotal\\\": number, \\\"tax\\\": number, \\\"total_amount\\\": number}\\n\\nInvoice Text:\\n{{ $json.text }}\"\n    }\n  ]\n}"
       },
       "name": "Extract Invoice Fields (Claude)",
       "type": "n8n-nodes-base.httpRequest",
@@ -67,7 +67,7 @@
         "documentId": "YOUR_GOOGLE_SHEET_PO_DATABASE_ID",
         "sheetName": "PurchaseOrders",
         "lookupColumn": "po_number",
-        "lookupValue": "={{ $json.content[0].text ? JSON.parse($json.content[0].text).po_number : '' }}"
+        "lookupValue": "={{ $json.content.find(b => b.type === 'text')?.text ? (JSON.parse($json.content.find(b => b.type === 'text').text).po_number || '').trim().toUpperCase() : '' }}"
       },
       "name": "Lookup PO (Google Sheets)",
       "type": "n8n-nodes-base.googleSheets",
@@ -110,7 +110,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-3-7-sonnet-20250219\",\n  \"max_tokens\": 1024,\n  \"temperature\": 0.1,\n  \"system\": \"You are a financial discrepancy analyst. Classify reconciliation mismatches into clear root causes.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze the mathematical reconciliation result below and categorize the root discrepancy.\\nReconciliation Result:\\n{{ JSON.stringify($json) }}\"\n    }\n  ]\n}"
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-5-5\",\n  \"max_tokens\": 4096,\n  \"output_config\": { \"effort\": \"low\" },\n  \"system\": \"You are a financial discrepancy analyst. Classify reconciliation mismatches into clear root causes.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyze the mathematical reconciliation result below and categorize the root discrepancy.\\nReconciliation Result:\\n{{ JSON.stringify($json) }}\"\n    }\n  ]\n}"
       },
       "name": "Classify Discrepancy (Claude)",
       "type": "n8n-nodes-base.httpRequest",
@@ -120,7 +120,7 @@
     {
       "parameters": {
         "channel": "finance-discrepancies",
-        "text": "=:warning: *Invoice Reconciliation Alert*\n*Vendor:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.vendor_name }}\n*Invoice #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.invoice_number }}\n*PO #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.po_number }}\n*Status:* {{ $node[\"Compare Totals (Pure Python)\"].json.status }}\n*Summary:* {{ $json.content[0].text }}"
+        "text": "=:warning: *Invoice Reconciliation Alert*\n*Vendor:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.vendor_name }}\n*Invoice #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.invoice_number }}\n*PO #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.po_number }}\n*Status:* {{ $node[\"Compare Totals (Pure Python)\"].json.status }}\n*Summary:* {{ $json.content.find(b => b.type === 'text')?.text }}"
       },
       "name": "Alert Bookkeeper (Slack)",
       "type": "n8n-nodes-base.slack",

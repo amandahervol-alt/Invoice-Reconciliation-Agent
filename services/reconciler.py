@@ -85,6 +85,14 @@ def load_purchase_orders_from_csv(csv_path: str = "data/purchase_orders.csv") ->
                 )
     return pos
 
+def find_purchase_order(
+    po_database: Dict[str, PurchaseOrder], po_number: Optional[str]
+) -> Optional[PurchaseOrder]:
+    """Look up a PO the same way the database is keyed (trimmed, uppercase)."""
+    if not po_number or not po_number.strip():
+        return None
+    return po_database.get(po_number.strip().upper())
+
 def reconcile_invoice(
     invoice: InvoiceData,
     purchase_order: Optional[PurchaseOrder] = None,
@@ -139,13 +147,13 @@ def reconcile_invoice(
             price_diff = inv_item.unit_price - matched_po_item.unit_price
             variance = inv_item.total_price - matched_po_item.total_price
             
-            issue = None
+            line_issues: List[str] = []
             if abs(price_diff) > 0.01:
-                issue = f"Unit price variance: Invoiced ${inv_item.unit_price:.2f} vs PO ${matched_po_item.unit_price:.2f}"
-                flags.append(issue)
+                line_issues.append(f"Unit price variance: Invoiced ${inv_item.unit_price:.2f} vs PO ${matched_po_item.unit_price:.2f}")
             if abs(qty_diff) > 0.001:
-                issue = f"Quantity variance: Invoiced {inv_item.quantity} vs PO {matched_po_item.quantity}"
-                flags.append(issue)
+                line_issues.append(f"Quantity variance: Invoiced {inv_item.quantity} vs PO {matched_po_item.quantity}")
+            flags.extend(line_issues)
+            issue = "; ".join(line_issues) if line_issues else None
 
             line_variances.append(LineItemVariance(
                 description=inv_item.description,
