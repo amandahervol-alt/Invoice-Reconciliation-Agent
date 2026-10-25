@@ -42,8 +42,9 @@ Reading an unpredictable invoice layout into structured data and classifying an 
 Invoice-Reconciliation-Agent/
 ├── invoice-reconciliation-agent.json   # Fully wired n8n workflow template
 ├── agent.py                            # Standalone Python CLI runner
-├── test_agent.py                       # Automated test suite
+├── tests/                              # pytest suite (parser, reconciler, classifier, pipeline, API)
 ├── requirements.txt                    # Python dependencies
+├── requirements-dev.txt                # Test dependencies (pytest, httpx)
 ├── .env.example                        # Configuration template
 ├── services/
 │   ├── parser.py                       # PDF and text extraction service
@@ -85,8 +86,10 @@ py agent.py data/sample_invoices/invoice_101_perfect_match.txt
 
 ### 4. Run the automated test suite
 ```bash
-py test_agent.py
+pip install -r requirements-dev.txt
+py -m pytest -v
 ```
+The tests mock all Claude calls, so no API key is needed.
 
 ---
 
