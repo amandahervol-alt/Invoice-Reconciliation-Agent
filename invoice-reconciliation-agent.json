@@ -63,16 +63,26 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Claude's Messages API response holds the invoice as JSON text inside a \"text\" block.\n// Thinking blocks may come first, so find the first text block instead of assuming the first block.\nconst block = ($json.content || []).find(b => b.type === 'text');\nif (!block || !block.text) {\n  throw new Error('Claude response contained no text block');\n}\n// Accept a bare JSON object or one wrapped in prose / a ```json fence.\nconst match = block.text.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('Claude response did not contain a JSON object: ' + block.text.slice(0, 200));\n}\nconst invoice = JSON.parse(match[0]);\ninvoice.po_number = invoice.po_number ? String(invoice.po_number).trim().toUpperCase() : null;\nreturn { json: invoice };\n"
+      },
+      "name": "Parse Invoice JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
         "operation": "lookup",
         "documentId": "YOUR_GOOGLE_SHEET_PO_DATABASE_ID",
         "sheetName": "PurchaseOrders",
         "lookupColumn": "po_number",
-        "lookupValue": "={{ $json.content.find(b => b.type === 'text')?.text ? (JSON.parse($json.content.find(b => b.type === 'text').text).po_number || '').trim().toUpperCase() : '' }}"
+        "lookupValue": "={{ $json.po_number || '' }}"
       },
       "name": "Lookup PO (Google Sheets)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 2,
-      "position": [850, 300]
+      "position": [1050, 300]
     },
     {
       "parameters": {
@@ -80,12 +90,12 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"invoice\": {{ JSON.stringify($node[\"Extract Invoice Fields (Claude)\"].json) }},\n  \"purchase_order\": {{ JSON.stringify($json) }},\n  \"dollar_tolerance\": 0.50,\n  \"percent_tolerance\": 0.01\n}"
+        "jsonBody": "={\n  \"invoice\": {{ JSON.stringify($node[\"Parse Invoice JSON\"].json) }},\n  \"purchase_order\": {{ JSON.stringify($json) }},\n  \"dollar_tolerance\": 0.50,\n  \"percent_tolerance\": 0.01\n}"
       },
       "name": "Compare Totals (Pure Python)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1050, 300]
+      "position": [1250, 300]
     },
     {
       "parameters": {
@@ -115,17 +125,17 @@
       "name": "Classify Discrepancy (Claude)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1250, 300]
+      "position": [1450, 300]
     },
     {
       "parameters": {
         "channel": "finance-discrepancies",
-        "text": "=:warning: *Invoice Reconciliation Alert*\n*Vendor:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.vendor_name }}\n*Invoice #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.invoice_number }}\n*PO #:* {{ $node[\"Extract Invoice Fields (Claude)\"].json.po_number }}\n*Status:* {{ $node[\"Compare Totals (Pure Python)\"].json.status }}\n*Summary:* {{ $json.content.find(b => b.type === 'text')?.text }}"
+        "text": "=:warning: *Invoice Reconciliation Alert*\n*Vendor:* {{ $node[\"Parse Invoice JSON\"].json.vendor_name }}\n*Invoice #:* {{ $node[\"Parse Invoice JSON\"].json.invoice_number }}\n*PO #:* {{ $node[\"Parse Invoice JSON\"].json.po_number || 'NOT SPECIFIED' }}\n*Status:* {{ $node[\"Compare Totals (Pure Python)\"].json.status }}\n*Summary:* {{ $json.content.find(b => b.type === 'text')?.text }}"
       },
       "name": "Alert Bookkeeper (Slack)",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 1,
-      "position": [1450, 300]
+      "position": [1650, 300]
     }
   ],
   "connections": {
@@ -152,6 +162,17 @@
       ]
     },
     "Extract Invoice Fields (Claude)": {
+      "main": [
+        [
+          {
+            "node": "Parse Invoice JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Invoice JSON": {
       "main": [
         [
           {
